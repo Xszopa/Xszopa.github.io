@@ -19,10 +19,36 @@
             height: 100vh;
             font-family: Arial, sans-serif;
             overflow: hidden;
+            position: relative;
         }
 
-        #menu {
+        /* Styl dla modal (nakładki) */
+        .modal {
+            display: none; /* Domyślnie modal jest ukryty */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* półprzezroczyste tło */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
             text-align: center;
+            width: 80%; /* Responsywna szerokość */
+            max-width: 500px; /* Maksymalna szerokość */
+            position: relative;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
         }
 
         button {
@@ -30,36 +56,60 @@
             padding: 10px;
             margin: 10px;
             cursor: pointer;
+            width: 100%;
+        }
+
+        /* Styl dla przycisku cofania do menu */
+        #backToMenuBtn {
+            background-color: #ff6347;
+            color: white;
+            font-size: 18px;
+            margin-top: 20px;
         }
 
         canvas {
+            padding: 10px;
+            align-items: center;
             display: none;
             background-color: #ffffff;
             border: 2px solid black;
+            border-radius: 10px;
             position: absolute;
-            top: 0;
-            left: 0;
         }
 
-        #gameContainer {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
+        /* Przyciski do menu w prawym górnym rogu */
+        #backToMenuBtn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
         }
+
+        /* Responsywne style dla różnych rozdzielczości */
+        @media (max-width: 600px) {
+            .modal-content {
+                width: 90%; /* Węższa szerokość modal na mniejszych ekranach */
+            }
+
+            button {
+                font-size: 18px; /* Mniejsza czcionka przyciski na małych ekranach */
+            }
+        }
+
     </style>
 </head>
 <body>
 
-    <div id="menu">
-        <h1>Wybierz grę</h1>
-        <button id="flappyBirdBtn">Flappy Bird</button>
-        <button id="geometryDashBtn">Geometry Dash</button>
+    <!-- Modal (nakładka) dla wyboru gry -->
+    <div id="menuModal" class="modal">
+        <div class="modal-content">
+            <h1>Wybierz grę</h1>
+            <button id="flappyBirdBtn">Flappy Bird</button>
+        </div>
     </div>
 
-    <div id="gameContainer">
-        <canvas id="gameCanvas" width="320" height="480"></canvas>
-    </div>
+    <!-- Canvas (obszar gry) -->
+    <canvas id="gameCanvas" width="500" height="480" margin-left="200"></canvas>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
@@ -68,21 +118,22 @@
         let currentGame = null;  // Zmienna do wyboru gry
         let bird, pipes, score, gameSpeed, gameOver;
         let square, gravity, squareSpeed, obstacles, jumpHeight, isJumping;
-        canvas.width = 320;
+        canvas.width = 900;
         canvas.height = 480;
+
+        // Wyświetlanie modal na początku
+        const menuModal = document.getElementById("menuModal");
+        menuModal.style.display = "flex";
 
         // Menu wyboru gry
         document.getElementById("flappyBirdBtn").addEventListener("click", () => {
             startGame("flappyBird");
         });
-        document.getElementById("geometryDashBtn").addEventListener("click", () => {
-            startGame("geometryDash");
-        });
 
         // Funkcja do uruchamiania gry
         function startGame(game) {
-            document.getElementById("menu").style.display = "none";
-            document.getElementById("gameContainer").style.display = "block";
+            menuModal.style.display = "none";  // Ukrywamy modal
+            canvas.style.display = "block";    // Pokazujemy canvas z grą
             currentGame = game;
             if (game === "flappyBird") {
                 initFlappyBird();
@@ -99,7 +150,7 @@
                 this.width = 20;
                 this.height = 20;
                 this.gravity = 0.5;
-                this.lift = -6; // Mniejszy zakres skoku
+                this.lift = -7 ; // Mniejszy zakres skoku
                 this.velocity = 0;
             }
 
@@ -153,7 +204,7 @@
             bird = new Bird();
             pipes = [];
             score = 0;
-            gameSpeed = 2;
+            gameSpeed = 2;  // Początkowa prędkość przesuwania rur
             gameOver = false;
             drawFlappyBird();
         }
@@ -196,6 +247,11 @@
 
             score++;
 
+            // Utrudnienie: zwiększanie prędkości gry w miarę upływu czasu
+            if (score % 100 === 0) { // Co 100 punktów zwiększamy prędkość
+                gameSpeed += 0.2;
+            }
+
             requestAnimationFrame(drawFlappyBird);
         }
 
@@ -205,62 +261,18 @@
             }
         });
 
-        // --- Geometry Dash ---
-        function initGeometryDash() {
-            square = { x: 50, y: canvas.height - 50, size: 20 };
-            gravity = 0.5;
-            squareSpeed = 0;
-            obstacles = [];
-            jumpHeight = -8;
-            isJumping = false;
-            drawGeometryDash();
-        }
 
-        function drawGeometryDash() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            squareSpeed += gravity;
-            square.y += squareSpeed;
+        // Dodajemy przycisk cofania do menu
+        const backToMenuBtn = document.createElement("button");
+        backToMenuBtn.id = "backToMenuBtn";
+        backToMenuBtn.textContent = "Wróć do menu";
+        document.body.appendChild(backToMenuBtn);
 
-            if (square.y + square.size > canvas.height) {
-                square.y = canvas.height - square.size;
-                squareSpeed = 0;
-                isJumping = false;
-            }
-
-            ctx.fillStyle = "#FF6347";
-            ctx.fillRect(square.x, square.y, square.size, square.size);
-
-            // Tworzenie przeszkód
-            if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < canvas.width - 150) {
-                let height = Math.random() * (canvas.height - 100);
-                obstacles.push({ x: canvas.width, y: height, width: 20, height: canvas.height - height });
-            }
-
-            for (let i = 0; i < obstacles.length; i++) {
-                obstacles[i].x -= 2;
-                ctx.fillStyle = "#000";
-                ctx.fillRect(obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
-                if (square.x < obstacles[i].x + obstacles[i].width &&
-                    square.x + square.size > obstacles[i].x &&
-                    square.y < obstacles[i].y + obstacles[i].height) {
-                    alert("Koniec gry!");
-                    obstacles = [];
-                    square.y = canvas.height - 50;
-                    squareSpeed = 0;
-                }
-            }
-
-            obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
-
-            requestAnimationFrame(drawGeometryDash);
-        }
-
-        document.addEventListener("keydown", (e) => {
-            if (e.key === " " && !isJumping) {
-                squareSpeed = jumpHeight;
-                isJumping = true;
-            }
+        backToMenuBtn.addEventListener("click", () => {
+            canvas.style.display = "none";  // Ukrywamy canvas z grą
+            menuModal.style.display = "flex";  // Pokazujemy ponownie modal
         });
+
     </script>
 
 </body>
