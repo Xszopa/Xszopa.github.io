@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fajna Strona</title>
+    <title>Flappy Bird</title>
     <style>
-        /* Resetowanie domyślnych marginesów */
         * {
             margin: 0;
             padding: 0;
@@ -13,66 +12,175 @@
         }
 
         body {
-            font-family: 'Arial', sans-serif;
-            background: #f4f4f9;
-            color: #333;
-            line-height: 1.6;
+            background-color: #70c5ce;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
         }
 
-        header {
-            background: #333;
-            color: #fff;
-            padding: 20px;
-            text-align: center;
-        }
-
-        header h1 {
-            font-size: 2.5rem;
-        }
-
-       
-
-        @media (max-width: 800px) {
-
-
-            .card {
-                width: 80%;
-            }
-            main{
-            grid-template-rows: 1fr;
-            }
-        }
-        div{
-            background-color: fuchsia;
-        }
-        main{
-            display: grid;
-            grid-template-columns: 1fr 2fr 1fr;
-            grid-auto-rows: 100px;
-            grid-gap: 20px;
+        canvas {
+            background-color: #ffffff;
+            display: block;
+            border: 2px solid black;
         }
     </style>
 </head>
 <body>
 
-<header>
-    <h1>Witamy na naszej stronie!</h1>
-</header>
+    <canvas id="gameCanvas" width="320" height="480"></canvas>
 
-<main>
-    <div>1</div>
-    <div>2</div>
-    <div>3</div>
-    <div>4</div>
-    <div>5</div>
-    <div>6</div>
-    <div>7</div>
-    <div>8</div>
-    <div>9</div>
-    <div>10</div>
-    <div>11</div>
-</main>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
 
+        // Zmienne gry
+        let bird, pipes, score, gameSpeed, gameOver;
+
+        // Klasa ptaka
+        class Bird {
+            constructor() {
+                this.x = 50;
+                this.y = canvas.height / 2;
+                this.width = 20;
+                this.height = 20;
+                this.gravity = 0.5;
+                this.lift = -12;
+                this.velocity = 0;
+            }
+
+            update() {
+                this.velocity += this.gravity;
+                this.y += this.velocity;
+
+                // Zapewnienie, że ptak nie wyleci poza ekran
+                if (this.y + this.height > canvas.height) {
+                    this.y = canvas.height - this.height;
+                    this.velocity = 0;
+                }
+
+                if (this.y < 0) {
+                    this.y = 0;
+                    this.velocity = 0;
+                }
+            }
+
+            jump() {
+                this.velocity = this.lift;
+            }
+
+            draw() {
+                ctx.fillStyle = "#FFD700"; // Kolor ptaka
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+            }
+        }
+
+        // Klasa rury
+        class Pipe {
+            constructor() {
+                this.width = 40;
+                this.spacing = 100;
+                this.gap = Math.floor(Math.random() * (canvas.height - this.spacing));
+                this.x = canvas.width;
+                this.y = this.gap;
+            }
+
+            update() {
+                this.x -= gameSpeed;
+            }
+
+            draw() {
+                ctx.fillStyle = "#4caf50";
+                ctx.fillRect(this.x, 0, this.width, this.y); // Górna rura
+                ctx.fillRect(this.x, this.y + this.spacing, this.width, canvas.height - (this.y + this.spacing)); // Dolna rura
+            }
+        }
+
+        // Funkcja do rysowania ekranu gry
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            bird.update();
+            bird.draw();
+
+            // Sprawdzanie kolizji z rurami
+            for (let i = 0; i < pipes.length; i++) {
+                pipes[i].update();
+                pipes[i].draw();
+
+                if (pipes[i].x < bird.x + bird.width &&
+                    pipes[i].x + pipes[i].width > bird.x &&
+                    (bird.y < pipes[i].y || bird.y + bird.height > pipes[i].y + pipes[i].spacing)) {
+                    gameOver = true;
+                }
+            }
+
+            // Usuwanie rur, które już wyszły z ekranu
+            pipes = pipes.filter(pipe => pipe.x + pipe.width > 0);
+
+            // Rysowanie wyniku
+            ctx.fillStyle = "#000";
+            ctx.font = "20px Arial";
+            ctx.fillText("Wynik: " + score, 10, 30);
+
+            if (gameOver) {
+                ctx.fillStyle = "#000";
+                ctx.font = "30px Arial";
+                ctx.fillText("Koniec gry!", 100, canvas.height / 2);
+                ctx.fillText("Wynik: " + score, 120, canvas.height / 2 + 40);
+                return;
+            }
+
+            // Sprawdzenie, czy należy dodać nową rurę
+            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) {
+                pipes.push(new Pipe());
+            }
+
+            // Zwiększenie wyniku
+            score++;
+
+            // Wykonanie kolejnej klatki
+            requestAnimationFrame(draw);
+        }
+
+        // Funkcja do obsługi skoku ptaka
+        function jump() {
+            if (!gameOver) {
+                bird.jump();
+            } else {
+                resetGame();
+            }
+        }
+
+        // Funkcja resetująca grę
+        function resetGame() {
+            bird = new Bird();
+            pipes = [];
+            score = 0;
+            gameSpeed = 2;
+            gameOver = false;
+            draw();
+        }
+
+        // Zdarzenie na klawisze
+        document.addEventListener("keydown", (e) => {
+            if (e.key === " ") {
+                jump();
+            }
+        });
+
+        // Inicjalizacja gry
+        function init() {
+            bird = new Bird();
+            pipes = [];
+            score = 0;
+            gameSpeed = 2;
+            gameOver = false;
+            draw();
+        }
+
+        init();
+    </script>
 
 </body>
 </html>
