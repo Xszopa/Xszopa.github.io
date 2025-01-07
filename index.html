@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flappy Bird</title>
+    <title>Wybór Gry - Flappy Bird i Geometry Dash</title>
     <style>
         * {
             margin: 0;
@@ -18,27 +18,80 @@
             align-items: center;
             height: 100vh;
             font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        #menu {
+            text-align: center;
+        }
+
+        button {
+            font-size: 20px;
+            padding: 10px;
+            margin: 10px;
+            cursor: pointer;
         }
 
         canvas {
+            display: none;
             background-color: #ffffff;
-            display: block;
             border: 2px solid black;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #gameContainer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
         }
     </style>
 </head>
 <body>
 
-    <canvas id="gameCanvas" width="320" height="480"></canvas>
+    <div id="menu">
+        <h1>Wybierz grę</h1>
+        <button id="flappyBirdBtn">Flappy Bird</button>
+        <button id="geometryDashBtn">Geometry Dash</button>
+    </div>
+
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="320" height="480"></canvas>
+    </div>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        // Zmienne gry
+        let currentGame = null;  // Zmienna do wyboru gry
         let bird, pipes, score, gameSpeed, gameOver;
+        let square, gravity, squareSpeed, obstacles, jumpHeight, isJumping;
+        canvas.width = 320;
+        canvas.height = 480;
 
-        // Klasa ptaka
+        // Menu wyboru gry
+        document.getElementById("flappyBirdBtn").addEventListener("click", () => {
+            startGame("flappyBird");
+        });
+        document.getElementById("geometryDashBtn").addEventListener("click", () => {
+            startGame("geometryDash");
+        });
+
+        // Funkcja do uruchamiania gry
+        function startGame(game) {
+            document.getElementById("menu").style.display = "none";
+            document.getElementById("gameContainer").style.display = "block";
+            currentGame = game;
+            if (game === "flappyBird") {
+                initFlappyBird();
+            } else if (game === "geometryDash") {
+                initGeometryDash();
+            }
+        }
+
+        // --- Flappy Bird ---
         class Bird {
             constructor() {
                 this.x = 50;
@@ -46,7 +99,7 @@
                 this.width = 20;
                 this.height = 20;
                 this.gravity = 0.5;
-                this.lift = -6;
+                this.lift = -6; // Mniejszy zakres skoku
                 this.velocity = 0;
             }
 
@@ -71,12 +124,11 @@
             }
 
             draw() {
-                ctx.fillStyle = "#FFD700"; // Kolor ptaka
+                ctx.fillStyle = "#FFD700";
                 ctx.fillRect(this.x, this.y, this.width, this.height);
             }
         }
 
-        // Klasa rury
         class Pipe {
             constructor() {
                 this.width = 40;
@@ -92,13 +144,21 @@
 
             draw() {
                 ctx.fillStyle = "#4caf50";
-                ctx.fillRect(this.x, 0, this.width, this.y); // Górna rura
-                ctx.fillRect(this.x, this.y + this.spacing, this.width, canvas.height - (this.y + this.spacing)); // Dolna rura
+                ctx.fillRect(this.x, 0, this.width, this.y); 
+                ctx.fillRect(this.x, this.y + this.spacing, this.width, canvas.height - (this.y + this.spacing)); 
             }
         }
 
-        // Funkcja do rysowania ekranu gry
-        function draw() {
+        function initFlappyBird() {
+            bird = new Bird();
+            pipes = [];
+            score = 0;
+            gameSpeed = 2;
+            gameOver = false;
+            drawFlappyBird();
+        }
+
+        function drawFlappyBird() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             bird.update();
             bird.draw();
@@ -115,10 +175,9 @@
                 }
             }
 
-            // Usuwanie rur, które już wyszły z ekranu
             pipes = pipes.filter(pipe => pipe.x + pipe.width > 0);
 
-            // Rysowanie wyniku
+            // Wynik
             ctx.fillStyle = "#000";
             ctx.font = "20px Arial";
             ctx.fillText("Wynik: " + score, 10, 30);
@@ -131,55 +190,77 @@
                 return;
             }
 
-            // Sprawdzenie, czy należy dodać nową rurę
             if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) {
                 pipes.push(new Pipe());
             }
 
-            // Zwiększenie wyniku
             score++;
 
-            // Wykonanie kolejnej klatki
-            requestAnimationFrame(draw);
+            requestAnimationFrame(drawFlappyBird);
         }
 
-        // Funkcja do obsługi skoku ptaka
-        function jump() {
-            if (!gameOver) {
-                bird.jump();
-            } else {
-                resetGame();
-            }
-        }
-
-        // Funkcja resetująca grę
-        function resetGame() {
-            bird = new Bird();
-            pipes = [];
-            score = 0;
-            gameSpeed = 2;
-            gameOver = false;
-            draw();
-        }
-
-        // Zdarzenie na klawisze
         document.addEventListener("keydown", (e) => {
             if (e.key === " ") {
-                jump();
+                bird.jump();
             }
         });
 
-        // Inicjalizacja gry
-        function init() {
-            bird = new Bird();
-            pipes = [];
-            score = 0;
-            gameSpeed = 2;
-            gameOver = false;
-            draw();
+        // --- Geometry Dash ---
+        function initGeometryDash() {
+            square = { x: 50, y: canvas.height - 50, size: 20 };
+            gravity = 0.5;
+            squareSpeed = 0;
+            obstacles = [];
+            jumpHeight = -8;
+            isJumping = false;
+            drawGeometryDash();
         }
 
-        init();
+        function drawGeometryDash() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            squareSpeed += gravity;
+            square.y += squareSpeed;
+
+            if (square.y + square.size > canvas.height) {
+                square.y = canvas.height - square.size;
+                squareSpeed = 0;
+                isJumping = false;
+            }
+
+            ctx.fillStyle = "#FF6347";
+            ctx.fillRect(square.x, square.y, square.size, square.size);
+
+            // Tworzenie przeszkód
+            if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < canvas.width - 150) {
+                let height = Math.random() * (canvas.height - 100);
+                obstacles.push({ x: canvas.width, y: height, width: 20, height: canvas.height - height });
+            }
+
+            for (let i = 0; i < obstacles.length; i++) {
+                obstacles[i].x -= 2;
+                ctx.fillStyle = "#000";
+                ctx.fillRect(obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
+                if (square.x < obstacles[i].x + obstacles[i].width &&
+                    square.x + square.size > obstacles[i].x &&
+                    square.y < obstacles[i].y + obstacles[i].height) {
+                    alert("Koniec gry!");
+                    obstacles = [];
+                    square.y = canvas.height - 50;
+                    squareSpeed = 0;
+                }
+            }
+
+            obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
+
+            requestAnimationFrame(drawGeometryDash);
+        }
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === " " && !isJumping) {
+                squareSpeed = jumpHeight;
+                isJumping = true;
+            }
+        });
     </script>
 
 </body>
