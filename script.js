@@ -39,8 +39,8 @@ class Bird {
         this.y = canvas.height / 2;
         this.width = 20;
         this.height = 20;
-        this.gravity = -5;
-        this.lift = -7; // Mniejszy zakres skoku
+        this.gravity = 0.3;
+        this.lift = -6; // Mniejszy zakres skoku
         this.velocity = 0;
     }
 
