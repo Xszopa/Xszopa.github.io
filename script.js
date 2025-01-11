@@ -299,31 +299,70 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Check brick collision
-        for(let c = 0; c < this.brickColumnCount; c++) {
-            for(let r = 0; r < this.brickRowCount; r++) {
-                const brick = this.bricks[c][r];
-                if(brick.status === 1) {
-                    const brickX = (c * (this.brickWidth + this.brickPadding)) + this.brickOffsetLeft;
-                    const brickY = (r * (this.brickHeight + this.brickPadding)) + this.brickOffsetTop;
-                    
-                    if(this.ball.x > brickX && 
-                       this.ball.x < brickX + this.brickWidth &&
-                       this.ball.y > brickY && 
-                       this.ball.y < brickY + this.brickHeight) {
-                        this.ball.dy = -this.ball.dy;
-                        brick.status = 0;
-                        this.score += 10;
-                        
-                        if(this.score === this.brickRowCount * this.brickColumnCount * 10) {
-                            this.gameWin();
-                            return;
-                        }
-                    }
+for(let c = 0; c < this.brickColumnCount; c++) {
+    for(let r = 0; r < this.brickRowCount; r++) {
+        const brick = this.bricks[c][r];
+        if(brick.status === 1) {
+            const brickX = (c * (this.brickWidth + this.brickPadding)) + this.brickOffsetLeft;
+            const brickY = (r * (this.brickHeight + this.brickPadding)) + this.brickOffsetTop;
+            
+            // Dokładniejsza detekcja kolizji
+            const ballLeft = this.ball.x - this.ball.radius;
+            const ballRight = this.ball.x + this.ball.radius;
+            const ballTop = this.ball.y - this.ball.radius;
+            const ballBottom = this.ball.y + this.ball.radius;
+            
+            const brickLeft = brickX;
+            const brickRight = brickX + this.brickWidth;
+            const brickTop = brickY;
+            const brickBottom = brickY + this.brickHeight;
+            
+            if (ballRight > brickLeft && 
+                ballLeft < brickRight && 
+                ballBottom > brickTop && 
+                ballTop < brickBottom) {
+                
+                // Określ kierunek odbicia
+                const fromLeft = ballRight - brickLeft;
+                const fromRight = brickRight - ballLeft;
+                const fromTop = ballBottom - brickTop;
+                const fromBottom = brickBottom - ballTop;
+                
+                // Znajdź najmniejszą głębokość kolizji
+                const minDepth = Math.min(fromLeft, fromRight, fromTop, fromBottom);
+                
+                // Odbij piłkę w odpowiednim kierunku
+                if (minDepth === fromLeft || minDepth === fromRight) {
+                    this.ball.dx = -this.ball.dx;
+                } else {
+                    this.ball.dy = -this.ball.dy;
+                }
+                
+                // Dodaj efekt dźwiękowy lub wizualny przy zniszczeniu cegły
+                this.createBrickEffect(brickX + this.brickWidth/2, brickY + this.brickHeight/2, brick.color);
+                
+                brick.status = 0;
+                this.score += 10;
+                
+                if(this.score === this.brickRowCount * this.brickColumnCount * 10) {
+                    this.gameWin();
+                    return;
                 }
             }
         }
     }
-
+}
+    createBrickEffect(x, y, color) {
+    // Efekt wizualny przy zniszczeniu cegły
+    this.ctx.save();
+    this.ctx.beginPath();
+    this.ctx.arc(x, y, 20, 0, Math.PI * 2);
+    this.ctx.fillStyle = color;
+    this.ctx.globalAlpha = 0.5;
+    this.ctx.fill();
+    this.ctx.restore();
+}
+        
     gameLoop() {
         if (!this.running) return;
 
